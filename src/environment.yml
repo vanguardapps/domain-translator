@@ -1,0 +1,17 @@
+name: domain-translator
+channels:
+  - defaults
+  - conda-forge
+  - pytorch
+  - huggingface
+dependencies:
+  - python=3.8
+  - pytorch
+  - transformers
+  - tokenizers
+  - evaluate
+  - accelerate
+  - datasets
+  - scikit-learn
+  - pip:
+    - sentencepiece
