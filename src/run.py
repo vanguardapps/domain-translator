@@ -121,7 +121,7 @@ def main():
         adam_beta2=0.999,
         gradient_accumulation_steps=16,
         gradient_checkpointing=False,  # Set to True to improve memory utilization (though will slow training by 20%)
-        torch_compile=True,
+        torch_compile=False,
     )
 
     trainer = Seq2SeqTrainer(
