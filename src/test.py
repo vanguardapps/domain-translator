@@ -1,27 +1,6 @@
-from datasets import load_dataset
-from transformers import (
-    AutoTokenizer,
-    DataCollatorForSeq2Seq,
-    AutoModelForSeq2SeqLM,
-    Seq2SeqTrainingArguments,
-    Seq2SeqTrainer,
+from utils import convert_tsv_csv, relative_path
+
+convert_tsv_csv(
+    relative_path("data/english-to-spanish.tsv"),
+    relative_path("data/english_to_spanish.csv"),
 )
-import json
-import evaluate
-
-
-def main():
-    dataset = load_dataset(
-        "csv",
-        data_files={
-            "train": "data/train.csv",
-            "test": "data/test.csv",
-            "validate": "data/validate.csv",
-        },
-    )
-
-    
-
-
-if __name__ == "__main__":
-    main()

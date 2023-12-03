@@ -1,4 +1,4 @@
-from datasets import load_dataset
+from datasets import load_dataset, DatasetDict
 from transformers import (
     AutoTokenizer,
     DataCollatorForSeq2Seq,
@@ -6,35 +6,92 @@ from transformers import (
     Seq2SeqTrainingArguments,
     Seq2SeqTrainer,
 )
-import json
 import evaluate
+from functools import partial
+from utils import relative_path
 
 
-def load_primary_components():
-    dataset = load_dataset(
-        "csv",
-        data_files={
-            "train": "data/train.csv",
-            "test": "data/test.csv",
-            "validate": "data/validate.csv",
-        },
+def get_split_dataset(dataset_filepath):
+    dataset_all = load_dataset("csv", data_files=relative_path(dataset_filepath))
+    train_testvalidate = dataset_all["train"].train_test_split(
+        test_size=0.3, shuffle=True
     )
+    test_validate = train_testvalidate["test"].train_test_split(
+        test_size=0.5, shuffle=True
+    )
+    return DatasetDict(
+        {
+            "train": train_testvalidate["train"],
+            "test": test_validate["train"],
+            "validate": test_validate["test"],
+        }
+    )
+
+
+def compute_metrics_generic(tokenizer, metrics_list, eval_preds):
+    metric = evaluate.load(*metrics_list)
+    predictions, references = eval_preds
+    predictions = tokenizer.batch_decode(
+        predictions, skip_special_tokens=True, clean_up_tokenization_spaces=True
+    )
+    references = tokenizer.batch_decode(
+        references, skip_special_tokens=True, clean_up_tokenization_spaces=True
+    )
+    references = [[reference] for reference in references]
+    return metric.compute(predictions=predictions, references=references)
+
+
+def load_primary_components(max_sequence_length, dataset_filepath, metrics_list):
+    dataset = get_split_dataset(dataset_filepath)
     tokenizer = AutoTokenizer.from_pretrained("google/mt5-base")
     model = AutoModelForSeq2SeqLM.from_pretrained("google/mt5-base")
-    return dataset, tokenizer, model
+    data_collator = DataCollatorForSeq2Seq(
+        tokenizer=tokenizer,
+        model=model,
+        padding="max_length",
+        max_length=max_sequence_length,
+    )
+    compute_metrics = partial(compute_metrics_generic, tokenizer, metrics_list)
+    return dataset, tokenizer, model, data_collator, compute_metrics
+
+
+def tokenize_function_generic(
+    tokenizer, max_sequence_length, input_property, labels_property, batch
+):
+    input_feature = tokenizer(
+        batch[input_property],
+        truncation=True,
+        padding="max_length",
+        max_length=max_sequence_length,
+    )
+    labels = tokenizer(
+        batch[labels_property],
+        truncation=True,
+        padding="max_length",
+        max_length=max_sequence_length,
+    )
+    return {
+        "input_ids": input_feature["input_ids"],
+        "attention_mask": input_feature["attention_mask"],
+        "labels": labels["input_ids"],
+    }
 
 
 def main():
-    # Primary configuration
-    max_sequence_length = 128  # Must set in model, then Seq2SeqTrainingArguments will default its generation_max_length parameter to model.max_length
+    max_sequence_length = 128
 
-    dataset, tokenizer, model = load_primary_components()
+    dataset, tokenizer, model, data_collator, compute_metrics = load_primary_components(
+        max_sequence_length=max_sequence_length,
+        dataset_filepath="data/english_to_spanish.csv",
+        metrics_list=["bleu"],
+    )
 
-    print(tokenizer.model_max_length)
+    tokenize_function = partial(
+        tokenize_function_generic, tokenizer, max_sequence_length, "english", "spanish"
+    )
 
-    # TODO: Code to tokenize the dataset here, store in tokenized_dataset (use dataset.map, see hf docs)
+    tokenized_dataset = dataset.map(tokenize_function, batched=True, batch_size=2)
 
-    # Trainer configuration
     train_args = Seq2SeqTrainingArguments(
         use_cpu=True,  # Set to False to automatically enable CUDA / mps device
         per_device_train_batch_size=4,
@@ -43,14 +100,14 @@ def main():
         save_strategy="epoch",
         evaluation_strategy="epoch",
         fp16=False,
-        output_dir="output",
+        output_dir="model_output",
         overwrite_output_dir=True,
         push_to_hub=False,
         learning_rate=5e-5,
         logging_strategy="epoch",
         optim="adamw_torch",
-        warmup_steps=200,
-        predict_with_generate=False,
+        # warmup_steps=200,
+        predict_with_generate=True,  ## ??? Set to True??
         adam_beta1=0.9,
         adam_beta2=0.999,
         gradient_accumulation_steps=16,
@@ -58,23 +115,17 @@ def main():
         torch_compile=True,
     )
 
-    # TODO: Define data_collator from DataCollatorForSeq2Seq (will have to look this up)
+    trainer = Seq2SeqTrainer(
+        model,
+        train_args,
+        train_dataset=tokenized_dataset["train"],
+        eval_dataset=tokenized_dataset["test"],
+        data_collator=data_collator,
+        tokenizer=tokenizer,
+        compute_metrics=compute_metrics,
+    )
 
-    # TODO: uncomment when above TODOs are done
-    # trainer = Seq2SeqTrainer(
-    #     model,
-    #     train_args,
-    #     train_dataset=tokenized_dataset["train"],
-    #     eval_dataset=tokenized_dataset["validation"],
-    #     data_collator=data_collator,
-    #     tokenizer=tokenizer,
-    # )
-
-    # Just an example of using the tokenizer
-    # result = tokenizer(
-    #     batch_sentences, truncation=True, max_length=max_sequence_length, padding="max_length"
-    # )
-    # print(dataset)
+    trainer.train()
 
 
 if __name__ == "__main__":
