@@ -92,7 +92,9 @@ def main():
     )
 
     device = torch.device("cuda") if torch.cuda.is_available():
-        tokenized_dataset.set_format("torch", device=device)
+        tokenized_dataset['train'].set_format("torch", device=device)
+        tokenized_dataset['test'].set_format("torch", device=device)
+        tokenized_dataset['validate'].set_format("torch", device=device)
         
     # model = model.to(device)
 
