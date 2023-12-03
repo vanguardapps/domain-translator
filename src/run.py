@@ -91,15 +91,15 @@ def main():
         tokenize_function_generic, tokenizer, max_sequence_length, "english", "spanish"
     )
 
-    if torch.cuda.is_available():
-        device = torch.device("cuda")
-        tokenized_dataset["train"].set_format("torch", device=device)
-        tokenized_dataset["test"].set_format("torch", device=device)
-        tokenized_dataset["validate"].set_format("torch", device=device)
-
     # model = model.to(device)
 
     tokenized_dataset = dataset.map(tokenize_function, batched=True, batch_size=2)
+
+    # if torch.cuda.is_available():
+    #     device = torch.device("cuda")
+    #     tokenized_dataset["train"].set_format("torch", device=device)
+    #     tokenized_dataset["test"].set_format("torch", device=device)
+    #     tokenized_dataset["validate"].set_format("torch", device=device)
 
     train_args = Seq2SeqTrainingArguments(
         use_cpu=False,  # Set to False to automatically enable CUDA / mps device
