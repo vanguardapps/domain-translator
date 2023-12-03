@@ -42,10 +42,12 @@ def compute_metrics_generic(tokenizer, metrics_list, eval_preds):
     return metric.compute(predictions=predictions, references=references)
 
 
-def load_primary_components(max_sequence_length, dataset_filepath, metrics_list):
+def load_primary_components(
+    model_name, max_sequence_length, dataset_filepath, metrics_list
+):
     dataset = get_split_dataset(dataset_filepath)
-    tokenizer = AutoTokenizer.from_pretrained("google/mt5-base")
-    model = AutoModelForSeq2SeqLM.from_pretrained("google/mt5-base")
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
     data_collator = DataCollatorForSeq2Seq(
         tokenizer=tokenizer,
         model=model,
@@ -82,6 +84,7 @@ def main():
     max_sequence_length = 128
 
     dataset, tokenizer, model, data_collator, compute_metrics = load_primary_components(
+        model_name="google/mt5-small"
         max_sequence_length=max_sequence_length,
         dataset_filepath="data/english_to_spanish.csv",
         metrics_list=["bleu"],
