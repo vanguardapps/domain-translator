@@ -111,8 +111,8 @@ def main():
 
     train_args = Seq2SeqTrainingArguments(
         use_cpu=False,  # Set to False to automatically enable CUDA / mps device
-        per_device_train_batch_size=12,
-        per_device_eval_batch_size=12,
+        per_device_train_batch_size=8,
+        per_device_eval_batch_size=8,
         num_train_epochs=1,
         save_strategy="epoch",
         evaluation_strategy="epoch",
@@ -127,7 +127,7 @@ def main():
         predict_with_generate=True,  ## ??? Set to True??
         adam_beta1=0.9,
         adam_beta2=0.999,
-        gradient_accumulation_steps=2,
+        gradient_accumulation_steps=4,
         gradient_checkpointing=False,  # Set to True to improve memory utilization (though will slow training by 20%)
         torch_compile=False,
     )
