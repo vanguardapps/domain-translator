@@ -84,7 +84,7 @@ def main():
     max_sequence_length = 128
 
     dataset, tokenizer, model, data_collator, compute_metrics = load_primary_components(
-        model_name="google/mt5-small"
+        model_name="google/mt5-small",
         max_sequence_length=max_sequence_length,
         dataset_filepath="data/english_to_spanish.csv",
         metrics_list=["bleu"],
