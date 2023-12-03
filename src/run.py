@@ -9,6 +9,7 @@ from transformers import (
 import evaluate
 from functools import partial
 from utils import relative_path
+import torch
 
 
 def get_split_dataset(dataset_filepath):
@@ -89,6 +90,11 @@ def main():
     tokenize_function = partial(
         tokenize_function_generic, tokenizer, max_sequence_length, "english", "spanish"
     )
+
+    device = torch.device("cuda") if torch.cuda.is_available():
+        tokenized_dataset.set_format("torch", device=device)
+        
+    # model = model.to(device)
 
     tokenized_dataset = dataset.map(tokenize_function, batched=True, batch_size=2)
 
