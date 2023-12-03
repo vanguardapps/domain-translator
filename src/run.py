@@ -127,7 +127,7 @@ def main():
         predict_with_generate=True,  # Research this more
         adam_beta1=0.9,
         adam_beta2=0.999,
-        gradient_accumulation_steps=2,  # Setting this to 4 made training go at 50% speed (for each iteration)
+        gradient_accumulation_steps=4,  # Setting this to 4 made training go at 50% speed (for each iteration)
         gradient_checkpointing=False,  # Set to True to improve memory utilization (though will slow training by 20%)
         torch_compile=False,
     )
