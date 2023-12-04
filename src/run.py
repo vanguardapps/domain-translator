@@ -77,7 +77,15 @@ def tokenize_function_generic(
         "input_ids": input_feature["input_ids"],
         "attention_mask": input_feature["attention_mask"],
         "labels": labels["input_ids"],
+        # "token_type_id" is sometimes also included here, usually with BERT-like models
     }
+
+
+def add_input_prefix_generic(input_property, prefix, batch):
+    batch[input_property] = [
+        prefix + example_input for example_input in batch[input_property]
+    ]
+    return batch
 
 
 def main():
@@ -87,6 +95,8 @@ def main():
         print("CUDA not available. Using CPU.")
 
     max_sequence_length = 128
+    tokenization_batch_size = 500
+    max_proc = 8
 
     dataset, tokenizer, model, data_collator, compute_metrics = load_primary_components(
         model_name="google/mt5-small",
@@ -99,24 +109,32 @@ def main():
         tokenize_function_generic, tokenizer, max_sequence_length, "english", "spanish"
     )
 
-    # model = model.to(device)
+    add_input_prefix = partial(
+        add_input_prefix_generic, "english", "translate english to spanish: "
+    )
 
-    tokenized_dataset = dataset.map(tokenize_function, batched=True, batch_size=2)
+    dataset = dataset.map(
+        add_input_prefix,
+        batched=True,
+        batch_size=tokenization_batch_size,
+        num_proc=max_proc,
+    )
 
-    # if torch.cuda.is_available():
-    #     device = torch.device("cuda")
-    #     tokenized_dataset["train"].set_format("torch", device=device)
-    #     tokenized_dataset["test"].set_format("torch", device=device)
-    #     tokenized_dataset["validate"].set_format("torch", device=device)
+    tokenized_dataset = dataset.map(
+        tokenize_function,
+        batched=True,
+        batch_size=tokenization_batch_size,
+        num_proc=max_proc,
+    )
 
     train_args = Seq2SeqTrainingArguments(
         use_cpu=False,  # Set to False to automatically enable CUDA / mps device
-        per_device_train_batch_size=8,
+        per_device_train_batch_size=8,  # retest this limit now that fp16 is turned on
         per_device_eval_batch_size=8,
         num_train_epochs=1,
         save_strategy="epoch",
         evaluation_strategy="epoch",
-        fp16=False,
+        fp16=True,
         output_dir="model_output",
         overwrite_output_dir=True,
         push_to_hub=False,
@@ -127,8 +145,8 @@ def main():
         predict_with_generate=True,  # Research this more
         adam_beta1=0.9,
         adam_beta2=0.999,
-        gradient_accumulation_steps=4,  # Setting this to 4 made training go at 50% speed (for each iteration)
-        gradient_checkpointing=False,  # Set to True to improve memory utilization (though will slow training by 20%)
+        gradient_accumulation_steps=4,
+        gradient_checkpointing=True,  # Set to True to improve memory utilization (though will slow training by 20%)
         torch_compile=False,
     )
 
