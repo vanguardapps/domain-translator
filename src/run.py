@@ -104,7 +104,7 @@ def evaluate_only(compute_metrics, eval_dataset, model, max_new_tokens):
             references = batch["labels"]
         else:
             print("batch['input_ids']", batch["input_ids"].size())
-            print("predictions", predictions.size(I))
+            print("predictions", predictions.size())
             print(
                 "model.generate()",
                 model.generate(
