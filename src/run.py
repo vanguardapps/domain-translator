@@ -10,6 +10,7 @@ import evaluate
 from functools import partial
 from utils import relative_path
 import torch
+from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -91,30 +92,36 @@ def add_input_prefix_generic(input_property, prefix, batch):
     return batch
 
 
-def evaluate_only(compute_metrics, eval_dataset, model, max_new_tokens):
+def evaluate_only(compute_metrics, eval_dataset, model, max_new_tokens, pad_token_id):
     loader = DataLoader(eval_dataset, batch_size=100)
     print("Predicting over eval dataset...")
     predictions = None
     references = None
+    placeholder_tensor = [torch.LongTensor(max_new_tokens)]
     for batch in tqdm(loader):
+        batch_predictions = model.generate(
+            batch["input_ids"], max_new_tokens=max_new_tokens
+        ).tolist()
+        batch_predictions = pad_sequence(
+            [
+                torch.LongTensor(example)
+                for example in (placeholder_tensor + batch_predictions)
+            ],
+            padding_value=pad_token_id,
+            batch_first=True,
+        )
+        batch_predictions.pop(0)
+
         if predictions is None:
-            predictions = model.generate(
-                batch["input_ids"], max_new_tokens=max_new_tokens
-            )
+            predictions = batch_predictions
             references = batch["labels"]
         else:
             print("batch['input_ids']", batch["input_ids"].size())
-            print("predictions", predictions.size())
-            print(
-                "model.generate()",
-                model.generate(
-                    batch["input_ids"], max_new_tokens=max_new_tokens
-                ).size(),
-            )
+            print("predictions", batch_predictions.size())
             predictions = torch.cat(
                 (
                     predictions,
-                    model.generate(batch["input_ids"], max_new_tokens=max_new_tokens),
+                    batch_predictions,
                 ),
                 0,
             )
@@ -170,6 +177,7 @@ def main():
         eval_dataset=tokenized_dataset["test"],
         model=model,
         max_new_tokens=max_sequence_length,
+        pad_token_id=tokenizer.pad_token_id,
     )
 
     # train_args = Seq2SeqTrainingArguments(
