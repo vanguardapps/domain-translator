@@ -110,7 +110,7 @@ def evaluate_only(compute_metrics, eval_dataset, model, max_new_tokens, pad_toke
             padding_value=pad_token_id,
             batch_first=True,
         )
-        batch_predictions.pop(0)
+        batch_predictions = batch_predictions[1:]
 
         if predictions is None:
             predictions = batch_predictions
