@@ -10,6 +10,8 @@ import evaluate
 from functools import partial
 from utils import relative_path
 import torch
+from torch.utils.data import DataLoader
+from tqdm import tqdm
 
 
 def get_split_dataset(dataset_filepath):
@@ -31,6 +33,7 @@ def get_split_dataset(dataset_filepath):
 
 def compute_metrics_generic(tokenizer, metrics_list, eval_preds):
     metric = evaluate.load(*metrics_list)
+
     predictions, references = eval_preds
     predictions = tokenizer.batch_decode(
         predictions, skip_special_tokens=True, clean_up_tokenization_spaces=True
@@ -89,12 +92,13 @@ def add_input_prefix_generic(input_property, prefix, batch):
 
 
 def evaluate_only(compute_metrics, eval_dataset, model, max_new_tokens):
-    predictions = model.generate(
-        eval_dataset["input_ids"], max_new_tokens=max_new_tokens
-    )
-    references = eval_dataset["labels"]
-    eval_preds = (predictions, references)
-    return compute_metrics(eval_preds)
+    loader = DataLoader(eval_dataset, batch_size=100)
+    for batch in tqdm(loader):
+        predictions = model.generate(batch["input_ids"], max_new_tokens=max_new_tokens)
+        references = batch["labels"]
+        eval_preds = (predictions, references)
+        print("finished another batch")
+        print("metrics", compute_metrics(eval_preds))
 
 
 def main():
@@ -138,13 +142,11 @@ def main():
 
     tokenized_dataset.set_format(type="torch")
 
-    print(
-        evaluate_only(
-            compute_metrics=compute_metrics,
-            eval_dataset=tokenized_dataset["test"],
-            model=model,
-            max_new_tokens=max_sequence_length,
-        )
+    evaluate_only(
+        compute_metrics=compute_metrics,
+        eval_dataset=tokenized_dataset["test"],
+        model=model,
+        max_new_tokens=max_sequence_length,
     )
 
     # train_args = Seq2SeqTrainingArguments(
