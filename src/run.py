@@ -103,6 +103,11 @@ def evaluate_only(compute_metrics, eval_dataset, model, max_new_tokens):
             )
             references = batch["labels"]
         else:
+            print("predictions", predictions)
+            print(
+                "model.generate()",
+                model.generate(batch["input_ids"], max_new_tokens=max_new_tokens),
+            )
             predictions = torch.cat(
                 (
                     predictions,
