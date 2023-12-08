@@ -94,10 +94,11 @@ def add_input_prefix_generic(input_property, prefix, batch):
 
 def evaluate_only(compute_metrics, eval_dataset, model, max_new_tokens, pad_token_id):
     loader = DataLoader(eval_dataset, batch_size=100)
-    print("Predicting over eval dataset...")
     predictions = None
     references = None
     placeholder_tensor = [torch.LongTensor(max_new_tokens)]
+
+    print("Predicting over eval dataset...")
     for batch in tqdm(loader):
         batch_predictions = model.generate(
             batch["input_ids"], max_new_tokens=max_new_tokens
@@ -116,8 +117,6 @@ def evaluate_only(compute_metrics, eval_dataset, model, max_new_tokens, pad_toke
             predictions = batch_predictions
             references = batch["labels"]
         else:
-            print("batch['input_ids']", batch["input_ids"].size())
-            print("predictions", batch_predictions.size())
             predictions = torch.cat(
                 (
                     predictions,
@@ -172,12 +171,14 @@ def main():
 
     tokenized_dataset.set_format(type="torch")
 
-    evaluate_only(
-        compute_metrics=compute_metrics,
-        eval_dataset=tokenized_dataset["test"],
-        model=model,
-        max_new_tokens=max_sequence_length,
-        pad_token_id=tokenizer.pad_token_id,
+    print(
+        evaluate_only(
+            compute_metrics=compute_metrics,
+            eval_dataset=tokenized_dataset["test"],
+            model=model,
+            max_new_tokens=max_sequence_length,
+            pad_token_id=tokenizer.pad_token_id,
+        )
     )
 
     # train_args = Seq2SeqTrainingArguments(
