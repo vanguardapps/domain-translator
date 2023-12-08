@@ -88,6 +88,15 @@ def add_input_prefix_generic(input_property, prefix, batch):
     return batch
 
 
+def evaluate_only(compute_metrics, eval_dataset, model, max_new_tokens):
+    predictions = model.generate(
+        eval_dataset["input_ids"], max_new_tokens=max_new_tokens
+    )
+    references = eval_dataset["labels"]
+    eval_preds = (predictions, references)
+    return compute_metrics(eval_preds)
+
+
 def main():
     if torch.cuda.is_available():
         print("CUDA is available. Using CUDA.")
@@ -127,40 +136,51 @@ def main():
         num_proc=max_proc,
     )
 
-    train_args = Seq2SeqTrainingArguments(
-        use_cpu=False,  # Set to False to automatically enable CUDA / mps device
-        per_device_train_batch_size=8,  # retest this limit now that fp16 is turned on
-        per_device_eval_batch_size=8,
-        num_train_epochs=1,
-        save_strategy="epoch",
-        evaluation_strategy="epoch",
-        fp16=True,
-        output_dir="model_output",
-        overwrite_output_dir=True,
-        push_to_hub=False,
-        learning_rate=5e-5,
-        logging_strategy="epoch",
-        optim="adamw_torch",
-        # warmup_steps=200,
-        predict_with_generate=True,  # Research this more
-        adam_beta1=0.9,
-        adam_beta2=0.999,
-        gradient_accumulation_steps=4,
-        gradient_checkpointing=True,  # Set to True to improve memory utilization (though will slow training by 20%)
-        torch_compile=False,
+    tokenized_dataset.set_format(type="torch")
+
+    print(
+        evaluate_only(
+            compute_metrics=compute_metrics,
+            eval_dataset=tokenized_dataset["test"],
+            model=model,
+            max_new_tokens=max_sequence_length,
+        )
     )
 
-    trainer = Seq2SeqTrainer(
-        model,
-        train_args,
-        train_dataset=tokenized_dataset["train"],
-        eval_dataset=tokenized_dataset["test"],
-        data_collator=data_collator,
-        tokenizer=tokenizer,
-        compute_metrics=compute_metrics,
-    )
+    # train_args = Seq2SeqTrainingArguments(
+    #     use_cpu=False,  # Set to False to automatically enable CUDA / mps device
+    #     per_device_train_batch_size=8,  # retest this limit now that fp16 is turned on
+    #     per_device_eval_batch_size=8,
+    #     num_train_epochs=1,
+    #     save_strategy="epoch",
+    #     evaluation_strategy="epoch",
+    #     fp16=True,
+    #     output_dir="model_output",
+    #     overwrite_output_dir=True,
+    #     push_to_hub=False,
+    #     learning_rate=5e-5,
+    #     logging_strategy="epoch",
+    #     optim="adamw_torch",
+    #     # warmup_steps=200,
+    #     predict_with_generate=True,  # Research this more
+    #     adam_beta1=0.9,
+    #     adam_beta2=0.999,
+    #     gradient_accumulation_steps=4,
+    #     gradient_checkpointing=True,  # Set to True to improve memory utilization (though will slow training by 20%)
+    #     torch_compile=False,
+    # )
 
-    trainer.train()
+    # trainer = Seq2SeqTrainer(
+    #     model,
+    #     train_args,
+    #     train_dataset=tokenized_dataset["train"],
+    #     eval_dataset=tokenized_dataset["test"],
+    #     data_collator=data_collator,
+    #     tokenizer=tokenizer,
+    #     compute_metrics=compute_metrics,
+    # )
+
+    # trainer.train()
 
 
 if __name__ == "__main__":
