@@ -93,12 +93,27 @@ def add_input_prefix_generic(input_property, prefix, batch):
 
 def evaluate_only(compute_metrics, eval_dataset, model, max_new_tokens):
     loader = DataLoader(eval_dataset, batch_size=100)
+    print("Predicting over eval dataset...")
+    predictions = None
+    references = None
     for batch in tqdm(loader):
-        predictions = model.generate(batch["input_ids"], max_new_tokens=max_new_tokens)
-        references = batch["labels"]
-        eval_preds = (predictions, references)
-        print("finished another batch")
-        print("metrics", compute_metrics(eval_preds))
+        if predictions is None:
+            predictions = model.generate(
+                batch["input_ids"], max_new_tokens=max_new_tokens
+            )
+            references = batch["labels"]
+        else:
+            predictions = torch.cat(
+                (
+                    predictions,
+                    model.generate(batch["input_ids"], max_new_tokens=max_new_tokens),
+                ),
+                0,
+            )
+            references = torch.cat((references, batch["labels"]), 0)
+
+    eval_preds = (predictions, references)
+    return compute_metrics(eval_preds)
 
 
 def main():
