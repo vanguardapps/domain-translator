@@ -203,6 +203,7 @@ def main():
         gradient_accumulation_steps=4,
         gradient_checkpointing=True,  # Set to True to improve memory utilization (though will slow training by 20%)
         torch_compile=False,
+        use_cache=False,  # Set to enable gradient checkpointing on the VM
     )
 
     trainer = Seq2SeqTrainer(
