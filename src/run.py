@@ -215,7 +215,9 @@ def main():
         compute_metrics=compute_metrics,
     )
 
-    trainer.train(resume_from_checkpoint=True)
+    trainer.train(
+        # resume_from_checkpoint=True
+    )
 
 
 if __name__ == "__main__":
