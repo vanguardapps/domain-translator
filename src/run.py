@@ -213,10 +213,9 @@ def main():
         data_collator=data_collator,
         tokenizer=tokenizer,
         compute_metrics=compute_metrics,
-        resume_from_checkpoint=True,
     )
 
-    trainer.train()
+    trainer.train(resume_from_checkpoint=True)
 
 
 if __name__ == "__main__":
