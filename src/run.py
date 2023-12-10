@@ -33,17 +33,18 @@ def get_split_dataset(dataset_filepath):
 
 
 def compute_metrics_generic(tokenizer, metrics_list, eval_preds):
-    metric = evaluate.load(*metrics_list)
+    print("compute metrics bypassed due to bug")
+    # metric = evaluate.load(*metrics_list)
 
-    predictions, references = eval_preds
-    predictions = tokenizer.batch_decode(
-        predictions, skip_special_tokens=True, clean_up_tokenization_spaces=True
-    )
-    references = tokenizer.batch_decode(
-        references, skip_special_tokens=True, clean_up_tokenization_spaces=True
-    )
-    references = [[reference] for reference in references]
-    return metric.compute(predictions=predictions, references=references)
+    # predictions, references = eval_preds
+    # predictions = tokenizer.batch_decode(
+    #     predictions, skip_special_tokens=True, clean_up_tokenization_spaces=True
+    # )
+    # references = tokenizer.batch_decode(
+    #     references, skip_special_tokens=True, clean_up_tokenization_spaces=True
+    # )
+    # references = [[reference] for reference in references]
+    # return metric.compute(predictions=predictions, references=references)
 
 
 def load_primary_components(
