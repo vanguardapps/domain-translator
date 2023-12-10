@@ -33,18 +33,18 @@ def get_split_dataset(dataset_filepath):
 
 
 def compute_metrics_generic(tokenizer, metrics_list, eval_preds):
-    print("compute metrics bypassed due to bug")
-    # metric = evaluate.load(*metrics_list)
+    # print("compute metrics bypassed due to bug")
+    metric = evaluate.load(*metrics_list)
 
-    # predictions, references = eval_preds
-    # predictions = tokenizer.batch_decode(
-    #     predictions, skip_special_tokens=True, clean_up_tokenization_spaces=True
-    # )
-    # references = tokenizer.batch_decode(
-    #     references, skip_special_tokens=True, clean_up_tokenization_spaces=True
-    # )
-    # references = [[reference] for reference in references]
-    # return metric.compute(predictions=predictions, references=references)
+    predictions, references = eval_preds
+    predictions = tokenizer.batch_decode(
+        predictions, skip_special_tokens=True, clean_up_tokenization_spaces=True
+    )
+    references = tokenizer.batch_decode(
+        references, skip_special_tokens=True, clean_up_tokenization_spaces=True
+    )
+    references = [[reference] for reference in references]
+    return metric.compute(predictions=predictions, references=references)
 
 
 def load_primary_components(
@@ -132,6 +132,8 @@ def evaluate_only(compute_metrics, eval_dataset, model, max_new_tokens, pad_toke
 
 
 def main():
+    local_cpu = False
+
     if torch.cuda.is_available():
         print("CUDA is available. Using CUDA.")
     else:
@@ -145,7 +147,7 @@ def main():
         model_name="google/mt5-small",
         max_sequence_length=max_sequence_length,
         dataset_filepath="data/english_to_spanish.csv",
-        metrics_list=["bleu"],
+        metrics_list=["sacrebleu"],
     )
 
     tokenize_function = partial(
@@ -184,13 +186,15 @@ def main():
     # )
 
     train_args = Seq2SeqTrainingArguments(
-        use_cpu=False,  # Set to False to automatically enable CUDA / mps device
+        use_cpu=True
+        if local_cpu
+        else False,  # Set to False to automatically enable CUDA / mps device
         per_device_train_batch_size=8,  # retest this limit now that fp16 is turned on
         per_device_eval_batch_size=8,
         num_train_epochs=1,
         save_strategy="epoch",
         evaluation_strategy="epoch",
-        fp16=True,
+        fp16=False if local_cpu else True,
         output_dir="model_output",
         overwrite_output_dir=True,
         push_to_hub=False,
@@ -216,9 +220,7 @@ def main():
         compute_metrics=compute_metrics,
     )
 
-    trainer.train(
-        # resume_from_checkpoint=True
-    )
+    trainer.train(resume_from_checkpoint=True)
 
 
 if __name__ == "__main__":
