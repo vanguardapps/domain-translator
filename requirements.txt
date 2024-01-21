@@ -1,0 +1,12 @@
+accelerate==0.24.1 --install-option='-U'
+datasets==2.15.0
+evaluate==0.4.1
+protobuf==4.25.1
+sacrebleu==2.3.3
+sentencepiece==0.1.99
+tokenizers==0.15.0
+torch==2.1.1
+tqdm==4.66.1
+transformers==4.35.2
+translate-toolkit==3.11.1
+

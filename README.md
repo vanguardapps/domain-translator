@@ -10,6 +10,8 @@ pip install torch tensorflow
 pip install protobuf
 pip install accelerate -U
 pip install sacrebleu
+pip install regex
+pip install nltk
 ```
 
 ## Environment

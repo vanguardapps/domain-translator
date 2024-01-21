@@ -1,2 +1,4 @@
 src/.env
 model_output
+__pycache__
+src/data
