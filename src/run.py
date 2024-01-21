@@ -8,7 +8,7 @@ from transformers import (
 )
 import evaluate
 from functools import partial
-from utils import relative_path
+from nlp_utils import relative_path
 import torch
 from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import DataLoader
